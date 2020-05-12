@@ -30,3 +30,5 @@
 *.exe
 *.out
 *.app
+# Linux Executables do not have file endings :)
+myfind
