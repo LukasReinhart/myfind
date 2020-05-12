@@ -1,10 +1,18 @@
-#include <iostream>
-#include <fstream>
+#include <stdio.h> // it says "std" it's probably good to have
+#include <stdlib.h> // it says "std" it's probably good to have
+#include <sys/wait.h> // wait(), for use with fork()
+#include <iostream> // kout & zin
+//#include <fstream> // read or write files
 #include <assert.h> // alias sanitycheck.h
-#include <mutex>
-#include <chrono>
+//#include <mutex> // for managing shared resources among threads
+#include <chrono> // useful for performance eval
 #include <vector>
-#include <unistd.h> // getopt()
+// nooo you can't just use vectors whenever you're too lazy to make dynamic arrays!! The overheadudelidoo nooooo
+// haha vector go push_brrr
+#include <unistd.h> // getopt() & friends
+#include <cctype> // tolower()
+#include <filesystem> // exactly what it says
+namespace fs = std::filesystem;
 
 /*
 |
@@ -29,6 +37,43 @@ void abort_doubleflag(char c)
     std::cout << program_name << ": option can only be used once -- '" << c << '\'' << std::endl;
     print_usage();
     exit(1);
+}
+
+
+/*
+|
+|   The actual file search
+|
+*/
+
+std::string to_lowercase( std::string s )
+{
+    for(char & c : s )
+    {
+        c = std::tolower(c);
+    }
+    return s;
+}
+
+
+void find_filepath( std::string path, std::string target, bool recursive, bool ignorecase )
+{
+    if( ignorecase ) target = to_lowercase( target );
+
+    for (const auto & entry : fs::directory_iterator(path) )
+    {
+        if( entry.is_regular_file() )
+        {
+            std::string entryname = entry.path().filename();
+            if( ignorecase ) entryname = to_lowercase( entryname );
+            if( entryname == target )
+                std::cout << getpid() << ": " << target << ": " << fs::absolute(entry.path()) << std::endl;
+        }
+        else if( entry.is_directory() && recursive )
+        {
+            find_filepath( path + entry.path().string(), target, recursive, ignorecase );
+        }
+    }
 }
 
 
@@ -89,6 +134,7 @@ int main(int argc, char *argv[], char *envp[])
         else
             //TODO make sure this does not contain forbidden symbols (in particular '/')?
             targets.push_back( argv[optind] );
+
         ++optind;
     }
     if ( path == "" || targets.size() < 1)
@@ -104,10 +150,49 @@ int main(int argc, char *argv[], char *envp[])
         std::cout << *it << std::endl;
     */
 
-    for (std::vector<std::string>::iterator it = targets.begin() ; it != targets.end(); ++it)
+    //pid_t children[] = new pid_t[ targets.size() ];
+    std::vector <pid_t> children;
+
+    for( int i = 0; i < targets.size(); ++i )
     {
-        //TODO starte Suchen
+	    pid_t pid = fork();
+
+        switch( pid )
+        {
+            case -1:
+                std::cout << "Childprozess #" << i << " could not be started." << std::endl;
+	            //exit(EXIT_FAILURE);
+                break;
+            case 0: //child
+                // Run a search for this file...
+                find_filepath( path, targets[i], flag_recursive, flag_ignorecase );
+                // ...then hand control back to parent.
+                exit(0);
+                break;
+            default: //parent
+                std::cout << "Childprozess #" << i << " with PID: " << pid << " started." << std::endl;
+                //children[i] = pid;
+                children.push_back( pid );
+        }
     }
 
+    while( children.size() > 0 )
+    {
+        int status = 0;
+        pid_t pid = wait( &status );
+
+        std::cout << "Childprozess with PID: " << pid << " ended with " << WEXITSTATUS(status) << std::endl;
+
+        for( int i = 0; i < children.size(); ++i )
+        {
+            if( children[i] == pid )
+            {
+                children.erase( children.begin() + i );
+                break;
+            }
+        }
+    }
+
+    exit(EXIT_SUCCESS);
     return 0;
 }
