@@ -25,16 +25,23 @@ std::string program_name = "myfile"; // program_name may change to the exact com
 
 void print_usage()
 {
-    std::cout << "Usage: " << program_name << " [options] searchpath filename1 [filename 2] [...filename n]" << std::endl;
-    std::cout << "Options:" << std::endl;
-    std::cout << "  -R \t Recursively search subdirectories" << std::endl;
-    std::cout << "  -i \t ignore uppercase/lowercase" << std::endl;
+    //std::cout << "Usage: " << program_name << " [options] searchpath filename1 [filename 2] [...filename n]" << std::endl;
+    printf("Usage: %s [options] searchpath filename1 [filename 2...]\r\n"
+        , program_name.c_str() );
+    //std::cout << "Options:" << std::endl;
+    printf("Options:\r\n");
+    //std::cout << "  -R \t Recursively search subdirectories" << std::endl;
+    printf("  -R \t Recursively search subdirectories\r\n");
+    //std::cout << "  -i \t ignore uppercase/lowercase" << std::endl;
+    printf("  -i \t ignore uppercase/lowercase\r\n");
 }
 
 
 void abort_doubleflag(char c)
 {
-    std::cout << program_name << ": option can only be used once -- '" << c << '\'' << std::endl;
+    //std::cout << program_name << ": option can only be used once -- '" << c << '\'' << std::endl;
+    printf("%s: option can only be used once -- '%c'\r\n"
+        , program_name.c_str(), c );
     print_usage();
     exit(1);
 }
@@ -67,7 +74,9 @@ void find_filepath( std::string path, std::string target, bool recursive, bool i
             std::string entryname = entry.path().filename();
             if( ignorecase ) entryname = to_lowercase( entryname );
             if( entryname == target )
-                std::cout << getpid() << ": " << target << ": " << fs::absolute(entry.path()) << std::endl;
+                //std::cout << getpid() << ": " << target << ": " << fs::absolute(entry.path()) << std::endl;
+                printf("%d: %s: %s\r\n"
+                    , getpid(), target.c_str(), fs::absolute(entry.path()).c_str() );
         }
         else if( entry.is_directory() && recursive )
         {
@@ -160,7 +169,9 @@ int main(int argc, char *argv[], char *envp[])
         switch( pid )
         {
             case -1:
-                std::cout << "Childprozess #" << i << " could not be started." << std::endl;
+                //std::cout << "Childprozess #" << i << " could not be started." << std::endl;
+                printf("Childprocess #%d could not be started.\r\n"
+                    , i );
 	            //exit(EXIT_FAILURE);
                 break;
             case 0: //child
@@ -173,12 +184,16 @@ int main(int argc, char *argv[], char *envp[])
                 }
                 catch(fs::filesystem_error except)
                 {
-                    std::cout << "Childprocess #" << i << " had an error:" << std::endl << '\t' << except.what() << std::endl;
+                    //std::cout << "Childprocess #" << i << " had an error:" << std::endl << '\t' << except.what() << std::endl;
+                    printf("Childprocess #%d had an error:\r\n\t%s\r\n"
+                        , i, except.what() );
                     exit(1);
                 }
                 break;
             default: //parent
-                std::cout << "Childprocess #" << i << " with PID: " << pid << " started." << std::endl;
+                //std::cout << "Childprocess #" << i << " with PID: " << pid << " started." << std::endl;
+                printf("Childprocess #%d with PID: %d started.\r\n"
+                    , i, pid );
                 //children[i] = pid;
                 children.push_back( pid );
         }
@@ -189,7 +204,9 @@ int main(int argc, char *argv[], char *envp[])
         int status = 0;
         pid_t pid = wait( &status );
 
-        std::cout << "Childprocess with PID: " << pid << " ended with " << WEXITSTATUS(status) << std::endl;
+        //std::cout << "Childprocess with PID: " << pid << " ended with " << WEXITSTATUS(status) << std::endl;
+        printf("Childprocess with PID: %d ended with %d.\r\n"
+            , pid, WEXITSTATUS(status) );
 
         for( int i = 0; i < children.size(); ++i )
         {
