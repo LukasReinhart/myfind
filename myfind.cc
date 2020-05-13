@@ -71,7 +71,7 @@ void find_filepath( std::string path, std::string target, bool recursive, bool i
         }
         else if( entry.is_directory() && recursive )
         {
-            find_filepath( path + entry.path().string(), target, recursive, ignorecase );
+            find_filepath( entry.path().string(), target, recursive, ignorecase );
         }
     }
 }
@@ -164,13 +164,21 @@ int main(int argc, char *argv[], char *envp[])
 	            //exit(EXIT_FAILURE);
                 break;
             case 0: //child
-                // Run a search for this file...
-                find_filepath( path, targets[i], flag_recursive, flag_ignorecase );
-                // ...then hand control back to parent.
-                exit(0);
+                try
+                {
+                    // Run a search for this file...
+                    find_filepath( path, targets[i], flag_recursive, flag_ignorecase );
+                    // ...then hand control back to parent.
+                    exit(0);
+                }
+                catch(fs::filesystem_error except)
+                {
+                    std::cout << "Childprocess #" << i << " had an error:" << std::endl << '\t' << except.what() << std::endl;
+                    exit(1);
+                }
                 break;
             default: //parent
-                std::cout << "Childprozess #" << i << " with PID: " << pid << " started." << std::endl;
+                std::cout << "Childprocess #" << i << " with PID: " << pid << " started." << std::endl;
                 //children[i] = pid;
                 children.push_back( pid );
         }
@@ -181,7 +189,7 @@ int main(int argc, char *argv[], char *envp[])
         int status = 0;
         pid_t pid = wait( &status );
 
-        std::cout << "Childprozess with PID: " << pid << " ended with " << WEXITSTATUS(status) << std::endl;
+        std::cout << "Childprocess with PID: " << pid << " ended with " << WEXITSTATUS(status) << std::endl;
 
         for( int i = 0; i < children.size(); ++i )
         {
